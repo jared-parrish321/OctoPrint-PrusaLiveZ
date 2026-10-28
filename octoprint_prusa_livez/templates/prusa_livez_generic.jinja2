@@ -1,0 +1,41 @@
+<div id="prusa_livez_control" class="prusa-livez-control" data-bind="visible: activeSheet()">
+    <!-- ko with: activeSheet -->
+    <small>
+        <i class="fas fa-ruler-vertical"></i>
+        {{ _('Sheet:') }} <strong data-bind="text: name || ('#' + (index + 1))"></strong>
+        &middot; {{ _('Live Z') }} <strong data-bind="text: $parent.fmt(z)"></strong> mm
+        <!-- ko if: $parent.shiftActive() && $parent.nudge() !== 0 -->
+        &middot; {{ _('nudge') }} <strong data-bind="text: $parent.fmtSigned($parent.nudge())"></strong>
+        <!-- /ko -->
+    </small>
+    <!-- /ko -->
+</div>
+
+<div id="prusa_livez_result" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h3 data-bind="text: resultTitle()"></h3>
+    </div>
+    <div class="modal-body">
+        <!-- ko with: pending -->
+        <!-- ko if: kind === 'ladder' -->
+        <p>{{ _('Which band has the best first layer? Band 1 is at the front of the bed, nearest you.') }}</p>
+        <div class="prusa-livez-pad" data-bind="foreach: $parent.resultBands()">
+            <button class="btn prusa-livez-band" data-bind="css: { 'btn-primary': $parents[1].pickedBand() === band }, click: function() { $parents[1].pickedBand(band); }">
+                <span class="prusa-livez-band-no" data-bind="text: band + 1"></span>
+                <span data-bind="text: $parents[1].fmtSigned(offset)"></span>
+                <small data-bind="text: '→ ' + newZ"></small>
+            </button>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: kind === 'nudge' -->
+        <p>{{ _('You nudged Z during the print.') }}</p>
+        <!-- /ko -->
+        <p class="prusa-livez-summary" data-bind="text: $parent.resultSummary()"></p>
+        <!-- /ko -->
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-bind="click: dismissResult">{{ _('Discard') }}</button>
+        <button class="btn btn-primary" data-bind="click: applyResult, enable: resultReady() && idle()">{{ _('Write to sheet') }}</button>
+    </div>
+</div>

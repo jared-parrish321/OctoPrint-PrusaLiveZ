@@ -1,0 +1,135 @@
+<div class="prusa-livez">
+    <!-- ko if: firmwareNote() -->
+    <div class="alert alert-info" data-bind="text: firmwareNote()"></div>
+    <!-- /ko -->
+    <!-- ko if: lastError() -->
+    <div class="alert alert-error">
+        <button type="button" class="close" data-bind="click: function() { lastError(null); }">&times;</button>
+        <span data-bind="text: lastError()"></span>
+    </div>
+    <!-- /ko -->
+
+    <table class="table table-condensed table-hover prusa-livez-sheets" data-bind="visible: supported()">
+        <thead>
+            <tr><th>#</th><th>{{ _('Sheet') }}</th><th class="text-right">{{ _('Live Z') }}</th><th></th></tr>
+        </thead>
+        <tbody data-bind="foreach: sheets">
+            <tr data-bind="css: { 'info': $parent.selectedIndex() === index, 'muted': !initialized }, click: function() { $parent.select(index); }">
+                <td data-bind="text: index + 1"></td>
+                <td data-bind="text: name || '-'"></td>
+                <td class="text-right" data-bind="text: initialized ? $parent.fmt(z) : '{{ _('not set') }}'"></td>
+                <td><span class="label label-success" data-bind="visible: active">{{ _('active') }}</span></td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="prusa-livez-row" data-bind="visible: supported()">
+        <button class="btn btn-mini" data-bind="click: refresh, enable: !refreshing()">
+            <i class="fas fa-sync" data-bind="css: { 'fa-spin': refreshing() }"></i> {{ _('Refresh') }}
+        </button>
+        <span class="muted" data-bind="visible: busy()">{{ _('Talking to the printer...') }}</span>
+    </div>
+
+    <!-- ko with: selected -->
+    <div class="prusa-livez-editor" data-bind="visible: $parent.canEdit()">
+        <h5>
+            {{ _('Sheet') }} <span data-bind="text: index + 1"></span>
+            <small data-bind="text: name"></small>
+        </h5>
+        <div data-bind="visible: !initialized" class="muted">
+            {{ _('This sheet has no Live Z yet. Run First Layer Calibration on the printer for it.') }}
+        </div>
+        <div data-bind="visible: initialized">
+            <label>{{ _('Live Z (mm)') }}</label>
+            <input type="text" inputmode="decimal" autocomplete="off" class="input-small text-right prusa-livez-zinput"
+                   data-bind="value: $parent.editZ, valueUpdate: 'input', enable: $parent.idle()">
+            <div class="prusa-livez-steps">
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(-0.05); }, enable: $parent.idle()">&minus;.05</button>
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(-0.01); }, enable: $parent.idle()">&minus;.01</button>
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(-0.0025); }, enable: $parent.idle()">&minus;.0025</button>
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(0.0025); }, enable: $parent.idle()">+.0025</button>
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(0.01); }, enable: $parent.idle()">+.01</button>
+                <button class="btn btn-mini" data-bind="click: function() { $parent.step(0.05); }, enable: $parent.idle()">+.05</button>
+            </div>
+            <div class="muted prusa-livez-hint">{{ _('More negative = nozzle closer to the bed.') }}
+                <span data-bind="text: $parent.editHint()"></span></div>
+            <button class="btn btn-primary btn-small" data-bind="click: $parent.saveZ, enable: $parent.idle() && $parent.zChanged()">{{ _('Save Live Z') }}</button>
+        </div>
+        <label>{{ _('Name (up to 7 letters, digits or spaces)') }}</label>
+        <div class="input-append">
+            <input type="text" maxlength="7" autocomplete="off" class="input-small"
+                   data-bind="value: $parent.editName, valueUpdate: 'input', enable: $parent.idle()">
+            <button class="btn" data-bind="click: $parent.saveName, enable: $parent.idle() && $parent.nameChanged()">{{ _('Rename') }}</button>
+        </div>
+        <div>
+            <button class="btn btn-small" data-bind="click: $parent.activate, enable: $parent.idle() && initialized && !active, visible: !active">{{ _('Make active') }}</button>
+        </div>
+        <div class="muted" data-bind="visible: !$parent.idle()">{{ _('Changes are locked while a print is running.') }}</div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: shiftActive() && !jobIsLadder() -->
+    <div class="prusa-livez-nudge">
+        <h5>{{ _('Nudge Z during this print') }}</h5>
+        <div class="prusa-livez-total">{{ _('Adjust:') }} <strong data-bind="text: fmtSigned(nudge())"></strong> mm</div>
+        <div data-bind="visible: canEdit()">
+            <button class="btn" data-bind="click: function() { doNudge(-0.025); }">&minus;0.025</button>
+            <button class="btn" data-bind="click: function() { doNudge(-0.01); }">&minus;0.01</button>
+            <button class="btn" data-bind="click: function() { doNudge(0.01); }">+0.01</button>
+            <button class="btn" data-bind="click: function() { doNudge(0.025); }">+0.025</button>
+            <button class="btn btn-link" data-bind="click: nudgeReset, enable: nudge() !== 0">{{ _('Reset') }}</button>
+        </div>
+        <div class="muted">{{ _('Minus = closer to the bed. Applies after the moves already buffered (about 1 to 2 s).') }}</div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: shiftActive() && jobIsLadder() -->
+    <div class="prusa-livez-nudge">
+        <h5>{{ _('Calibration ladder printing') }}</h5>
+        <div class="muted">{{ _('Each band prints at its own offset. Pick the best band when the print ends.') }}</div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: ladderDetected() && !shiftActive() -->
+    <div class="prusa-livez-ladder">
+        <h5>{{ _('Calibration ladder') }}</h5>
+        <label class="checkbox">
+            <input type="checkbox" data-bind="checked: ladderEnabled, enable: canEdit()"> {{ _('Give each band its own Z offset') }}
+        </label>
+        <div class="muted" data-bind="visible: !ladderNamed()">{{ _('This file looks like a notched calibration print, but its object name is different. Check the bands before printing.') }}</div>
+        <div data-bind="visible: ladderEnabled()">
+            <table class="table table-condensed prusa-livez-bands">
+                <thead><tr><th>{{ _('Band') }}</th><th>{{ _('Offset') }}</th><th class="text-right">{{ _('Live Z') }}</th></tr></thead>
+                <tbody data-bind="foreach: ladderRows">
+                    <tr>
+                        <td><span data-bind="text: number"></span> <small class="muted" data-bind="text: where"></small></td>
+                        <td><input type="text" inputmode="decimal" autocomplete="off" class="input-mini text-right" data-bind="value: offset, valueUpdate: 'input', enable: $parent.canEdit()"></td>
+                        <td class="text-right" data-bind="text: $parent.ladderLiveZ(offset())"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-small" data-bind="click: ladderDefaults, enable: canEdit()">{{ _('Reset to spread') }}</button>
+            <button class="btn btn-small btn-primary" data-bind="click: ladderSave, enable: canEdit() && ladderDirty()">{{ _('Save offsets') }}</button>
+        </div>
+    </div>
+    <!-- /ko -->
+
+    <div class="prusa-livez-more" data-bind="visible: supported()">
+        <a href="#" data-bind="click: function() { showHistory(!showHistory()); }">
+            <i class="fas" data-bind="css: { 'fa-caret-right': !showHistory(), 'fa-caret-down': showHistory() }"></i> {{ _('History and backup') }}
+        </a>
+        <div data-bind="visible: showHistory()">
+            <ul class="unstyled prusa-livez-history" data-bind="foreach: history">
+                <li>
+                    <span class="muted" data-bind="text: $parent.fmtTime(time)"></span>
+                    <span data-bind="text: $parent.describe($data)"></span>
+                    <button class="btn btn-mini" data-bind="visible: $parent.canEdit() && !$data.undone, click: function() { $parent.undo($data); }, enable: $parent.idle()">{{ _('Undo') }}</button>
+                    <span class="muted" data-bind="visible: $data.undone">{{ _('(undone)') }}</span>
+                </li>
+            </ul>
+            <div class="muted" data-bind="visible: history().length === 0">{{ _('No changes yet.') }}</div>
+            <button class="btn btn-mini" data-bind="click: exportSheets, enable: sheets().length > 0">{{ _('Export sheets') }}</button>
+            <button class="btn btn-mini" data-bind="click: pickImport, enable: canEdit() && idle()">{{ _('Import sheets') }}</button>
+            <input type="file" accept=".json,application/json" class="hide prusa-livez-import" data-bind="event: { change: importFile }">
+        </div>
+    </div>
+</div>
