@@ -1,0 +1,20 @@
+.prusa-livez .prusa-livez-sheets td,
+.prusa-livez .prusa-livez-sheets th { padding: 2px 4px; }
+.prusa-livez .prusa-livez-sheets tbody tr { cursor: pointer; }
+.prusa-livez .prusa-livez-sheets tr.muted td { color: #999; }
+.prusa-livez h5 { margin: 10px 0 4px; }
+.prusa-livez .prusa-livez-zinput { margin-bottom: 4px; }
+.prusa-livez .prusa-livez-steps { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+.prusa-livez .prusa-livez-hint { font-size: 11px; margin-bottom: 6px; }
+.prusa-livez .prusa-livez-editor,
+.prusa-livez .prusa-livez-nudge,
+.prusa-livez .prusa-livez-ladder,
+.prusa-livez .prusa-livez-more { border-top: 1px solid #ddd; margin-top: 8px; padding-top: 4px; }
+.prusa-livez .prusa-livez-total { font-size: 16px; margin: 4px 0; }
+.prusa-livez .prusa-livez-bands input { width: 56px; margin: 0; }
+.prusa-livez .prusa-livez-history li { margin: 2px 0; font-size: 12px; }
+.prusa-livez-control { margin: 0 0 6px; }
+#prusa_livez_result .prusa-livez-pad { display: flex; flex-direction: column; gap: 3px; max-width: 320px; margin: 0 auto; }
+#prusa_livez_result .prusa-livez-band { display: flex; justify-content: space-between; align-items: center; text-align: left; }
+#prusa_livez_result .prusa-livez-band-no { font-weight: bold; width: 2em; }
+#prusa_livez_result .prusa-livez-summary { margin-top: 10px; font-weight: bold; }
