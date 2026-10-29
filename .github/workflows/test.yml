@@ -40,6 +40,8 @@ jobs:
           python-version: "3.13"
       - run: pip install "OctoPrint>=1.10" -e ".[test]"
       - run: pytest -q --cov=octoprint_prusa_livez --cov-report=xml --cov-report=term --cov-fail-under=90
+      # The 90% gate is the pytest step above. GitHub's coverage upload only
+      # works on Team or Enterprise Cloud plans, so a failed upload is a warning.
       - name: Upload coverage report
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/upload-code-coverage@v1
@@ -47,3 +49,4 @@ jobs:
           file: coverage.xml
           language: Python
           label: code-coverage/pytest
+          fail-on-error: false
