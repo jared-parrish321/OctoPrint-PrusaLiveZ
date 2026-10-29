@@ -12,7 +12,22 @@ list of commands to send instead.
 
 import re
 
-_WORD_RE = re.compile(r"([A-Za-z])\s*([-+]?(?:\d+\.?\d*|\.\d+))")
+# One G-code word, like X10, Y-2.5 or E.8. findall() returns (letter, number)
+# pairs and skips anything that isn't a word.
+_GCODE_PARAMETER_RE = re.compile(
+    r"""
+    ([A-Za-z])          # the parameter letter: "X" in "X10"
+    \s*                 # optional spaces before the number: " " in "X 10"
+    (                   # the number:
+        [-+]?           #   an optional sign: "-" in "Y-2.5"
+        (?:
+            \d+ \.? \d*  #   digits, with an optional decimal part: "5", "5.", "5.25"
+          | \. \d+       #   or a decimal part alone: ".8" in "E.8"
+        )
+    )
+    """,
+    re.VERBOSE,
+)
 EPS = 1e-6
 
 
@@ -32,7 +47,7 @@ def parse_words(line):
     command = parts[0].upper()
     words = {}
     if len(parts) > 1:
-        for letter, value in _WORD_RE.findall(parts[1]):
+        for letter, value in _GCODE_PARAMETER_RE.findall(parts[1]):
             words[letter.upper()] = float(value)
     return command, words
 

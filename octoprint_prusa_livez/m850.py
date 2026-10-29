@@ -28,20 +28,60 @@ RAW_MAX = 0  # Z_BABYSTEP_MAX
 RAW_EMPTY = -1  # 0xFFFF read as int16
 LABEL_MAX = 7
 
-LABEL_RE = re.compile(r"^[A-Za-z0-9 ]{1,7}$")
-# what the firmware would read as a parameter inside a label
-_LABEL_Z_RE = re.compile(r"Z")
-_LABEL_A_RE = re.compile(r"A\s*[+-]?\d")
+# The patterns below use re.VERBOSE: whitespace in the pattern is ignored and
+# "#" starts a comment, so a real space has to be written as [ ].
 
-_HEADER_UNINIT_RE = re.compile(r"^Sheet (\d) NOT INITIALIZED$")
-_DATA_RE = re.compile(
-    r"^(?:Sheet (?P<sheet>\d) )?Z(?P<z>-?\d+(?:\.\d+)?) R(?P<raw>-?\d+) "
-    r"L(?P<label>.*) B(?P<bed>\d+) P(?P<pinda>\d+) A(?P<active>[01])$"
+VALID_SHEET_NAME_RE = re.compile(
+    r"""
+    ^ [A-Za-z0-9 ]{1,7} $   # 1 to 7 letters, digits or spaces: "Textur1", "PEI 2"
+    """,
+    re.VERBOSE,
 )
-_INVALID_SHEET_RE = re.compile(r"^Invalid sheet ID")
-_OUT_OF_RANGE_RE = re.compile(r"^Z VALUE OUT OF RANGE$")
 
-_FW_RE = re.compile(r"Prusa-Firmware (\d+)\.(\d+)\.(\d+)")
+# The firmware reads "A" followed by a number anywhere in the line as "make
+# active". Its strtol skips spaces, so "A 1" counts too.
+_NAME_ACTIVATES_SHEET_RE = re.compile(
+    r"""
+    A           # the parameter letter:   "A"   in "Smooth A1"
+    \s*         # spaces, which strtol skips: " "   in "A 1"
+    [+-]?       # an optional sign:       "-"   in "A-1"
+    \d          # at least one digit:     "1"   in "A1"
+    """,
+    re.VERBOSE,
+)
+
+# "Sheet 5 NOT INITIALIZED". The data follows on the next line.
+_UNINITIALIZED_SHEET_HEADER_RE = re.compile(
+    r"""
+    ^ Sheet [ ] (\d) [ ] NOT [ ] INITIALIZED $   # "Sheet 5 NOT INITIALIZED"
+    """,
+    re.VERBOSE,
+)
+
+# "Sheet 3 Z-0.8250 R-330 LTextur1 B60 P35 A1"
+_SHEET_REPORT_RE = re.compile(
+    r"""
+    ^
+    (?: Sheet [ ] (?P<sheet>\d) [ ] )?   # "Sheet 3 ", missing on the line after NOT INITIALIZED
+    Z (?P<z> -?\d+ (?:\.\d+)? ) [ ]      # Live Z in mm: "Z-0.8250 "
+    R (?P<raw> -?\d+ ) [ ]               # the stored value in microsteps: "R-330 "
+    L (?P<label> .* ) [ ]                # the name, which can contain spaces: "LTextur1 ", "LPEI 2 "
+    B (?P<bed> \d+ ) [ ]                 # bed temperature (unused by the firmware): "B60 "
+    P (?P<pinda> \d+ ) [ ]               # PINDA temperature (unused by the firmware): "P35 "
+    A (?P<active> [01] )                 # 1 = the active sheet: "A1"
+    $
+    """,
+    re.VERBOSE,
+)
+
+# "FIRMWARE_NAME:Prusa-Firmware 3.14.1+8237_74a577bc0 based on Marlin"
+_PRUSA_FIRMWARE_VERSION_RE = re.compile(
+    r"""
+    Prusa-Firmware [ ]          # "Prusa-Firmware "
+    (\d+) \. (\d+) \. (\d+)   # major.minor.patch: "3.14.1" (the "+8237_74a577bc0" after it is ignored)
+    """,
+    re.VERBOSE,
+)
 MIN_FIRMWARE = (3, 13, 0)
 
 
@@ -68,12 +108,12 @@ class ReplyParser:
         if not text:
             return None
 
-        m = _HEADER_UNINIT_RE.match(text)
+        m = _UNINITIALIZED_SHEET_HEADER_RE.match(text)
         if m:
             self._pending_uninit = int(m.group(1))
             return None
 
-        m = _DATA_RE.match(text)
+        m = _SHEET_REPORT_RE.match(text)
         if m:
             sheet = m.group("sheet")
             initialized = True
@@ -97,9 +137,9 @@ class ReplyParser:
             )
 
         self._pending_uninit = None
-        if _INVALID_SHEET_RE.match(text):
+        if text.startswith("Invalid sheet ID"):
             return ("error", text)
-        if _OUT_OF_RANGE_RE.match(text):
+        if text == "Z VALUE OUT OF RANGE":
             return ("error", "Z value out of range")
         return None
 
@@ -174,13 +214,13 @@ def validate_label(label):
     if label is None:
         raise M850Error("Name is empty")
     label = str(label).rstrip()
-    if not LABEL_RE.match(label):
+    if not VALID_SHEET_NAME_RE.match(label):
         raise M850Error("Name must be 1 to 7 letters, digits or spaces")
-    if _LABEL_Z_RE.search(label):
+    if "Z" in label:
         raise M850Error(
             "The firmware would read an upper-case Z in a name as a new Live Z. Use a lower-case z."
         )
-    if _LABEL_A_RE.search(label):
+    if _NAME_ACTIVATES_SHEET_RE.search(label):
         raise M850Error(
             "The firmware would read an upper-case A followed by a digit as 'make active'. "
             "Use a lower-case a."
@@ -214,7 +254,7 @@ def parse_firmware(name):
     """Return (is_prusa, version_tuple or None, supports_m850)."""
     if not name:
         return False, None, False
-    m = _FW_RE.search(name)
+    m = _PRUSA_FIRMWARE_VERSION_RE.search(name)
     if not m:
         return "prusa" in name.lower(), None, False
     version = tuple(int(x) for x in m.groups())

@@ -13,9 +13,35 @@ import re
 from .zshift import parse_words
 
 OBJECT_HINT = "FirstLayerCalibration"
-_OBJECT_RE = re.compile(r"^; printing object (.+?)(?: id:\d+ copy \d+)?\s*$")
-_TYPE_RE = re.compile(r"^;TYPE:(.+)$")
-_Z_RE = re.compile(r"^;Z:([-\d.]+)")
+# Slicer comments. These use re.VERBOSE, so a real space is written as [ ].
+
+# "; printing object FirstLayerCalibration-FirstLayer.stl id:0 copy 0"
+_PRINTING_OBJECT_COMMENT_RE = re.compile(
+    r"""
+    ^ ; [ ] printing [ ] object [ ]       # "; printing object "
+    (.+?)                               # the object name, as short as possible:
+                                        #   "FirstLayerCalibration-FirstLayer.stl"
+    (?: [ ] id: \d+ [ ] copy [ ] \d+ )?   # added by newer PrusaSlicer versions: " id:0 copy 0"
+    \s* $                               # trailing spaces or the line ending
+    """,
+    re.VERBOSE,
+)
+
+# ";TYPE:External perimeter"
+_EXTRUSION_TYPE_COMMENT_RE = re.compile(
+    r"""
+    ^ ;TYPE: (.+) $   # ";TYPE:External perimeter"
+    """,
+    re.VERBOSE,
+)
+
+# ";Z:0.2", the height of the current layer
+_LAYER_HEIGHT_COMMENT_RE = re.compile(
+    r"""
+    ^ ;Z: ( [-\d.]+ )   # ";Z:0.2"
+    """,
+    re.VERBOSE,
+)
 
 MIN_NOTCH_DEPTH = 2.0  # mm a notch must reach into the pad
 MAX_NOTCH_WIDTH = 4.0  # mm between the two sides of one notch
@@ -48,7 +74,7 @@ def analyze(lines, max_layers=1):
     for raw in lines:
         line = raw.rstrip("\r\n")
         if line.startswith(";"):
-            m = _OBJECT_RE.match(line)
+            m = _PRINTING_OBJECT_COMMENT_RE.match(line)
             if m:
                 objects.add(m.group(1).strip())
             elif line.startswith(";LAYER_CHANGE"):
@@ -56,11 +82,11 @@ def analyze(lines, max_layers=1):
                 if layer_changes > max_layers:
                     break  # a normal multi-layer print: stop reading early
             else:
-                m = _TYPE_RE.match(line)
+                m = _EXTRUSION_TYPE_COMMENT_RE.match(line)
                 if m:
                     current_type = m.group(1).strip()
                 else:
-                    m = _Z_RE.match(line)
+                    m = _LAYER_HEIGHT_COMMENT_RE.match(line)
                     if m and layer_z is None:
                         layer_z = float(m.group(1))
             continue
