@@ -684,7 +684,7 @@ class PrusaLiveZPlugin(
 
 
 __plugin_name__ = "Prusa Live Z"
-__plugin_pythoncompat__ = ">=3.10,<4"
+__plugin_pythoncompat__ = ">=3.9,<4"
 
 
 def __plugin_load__():

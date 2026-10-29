@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "jared-parrish321" }]
-requires-python = ">=3.10,<4"
+requires-python = ">=3.9,<4"
 # OctoPrint itself is deliberately not listed; the plugin runs inside it.
 dependencies = []
 
