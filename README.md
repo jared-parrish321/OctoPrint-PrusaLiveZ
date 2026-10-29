@@ -31,14 +31,15 @@ In OctoPrint: Settings > Plugin Manager > Get More > "...from URL", then paste:
 https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
 ```
 
-Or from a shell on the Pi (OctoPi keeps OctoPrint in `~/oprint`):
+Or from a shell, using the `pip` of the Python environment OctoPrint runs in:
 
 ```sh
-~/oprint/bin/pip install https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
-sudo service octoprint restart
+<octoprint-venv>/bin/pip install https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
 ```
 
-Once a release is tagged, OctoPrint's Software Update offers new versions from this repo's GitHub releases.
+Then restart OctoPrint (System menu > Restart OctoPrint, or however your install runs it). Where that environment lives depends on how OctoPrint was installed. On OctoPi, for example, it's `~/oprint`, and the restart command is `sudo service octoprint restart`.
+
+OctoPrint's Software Update offers new versions from this repo's GitHub releases.
 
 **Back up first:** before the first change, send `M850 S0` to `M850 S7` in the Terminal tab and keep the replies, or use Export sheets once the panel shows them.
 
