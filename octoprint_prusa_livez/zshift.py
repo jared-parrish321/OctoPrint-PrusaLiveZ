@@ -14,7 +14,7 @@ import re
 
 # One G-code word, like X10, Y-2.5 or E.8. findall() returns (letter, number)
 # pairs and skips anything that isn't a word.
-_WORD_RE = re.compile(
+_GCODE_PARAMETER_RE = re.compile(
     r"""
     ([A-Za-z])          # the parameter letter: "X" in "X10"
     \s*                 # optional spaces before the number: " " in "X 10"
@@ -47,7 +47,7 @@ def parse_words(line):
     command = parts[0].upper()
     words = {}
     if len(parts) > 1:
-        for letter, value in _WORD_RE.findall(parts[1]):
+        for letter, value in _GCODE_PARAMETER_RE.findall(parts[1]):
             words[letter.upper()] = float(value)
     return command, words
 

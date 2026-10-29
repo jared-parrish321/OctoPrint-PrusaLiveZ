@@ -16,7 +16,7 @@ OBJECT_HINT = "FirstLayerCalibration"
 # Slicer comments. These use re.VERBOSE, so a real space is written as [ ].
 
 # "; printing object FirstLayerCalibration-FirstLayer.stl id:0 copy 0"
-_OBJECT_RE = re.compile(
+_PRINTING_OBJECT_COMMENT_RE = re.compile(
     r"""
     ^ ; [ ] printing [ ] object [ ]       # "; printing object "
     (.+?)                               # the object name, as short as possible:
@@ -28,7 +28,7 @@ _OBJECT_RE = re.compile(
 )
 
 # ";TYPE:External perimeter"
-_TYPE_RE = re.compile(
+_EXTRUSION_TYPE_COMMENT_RE = re.compile(
     r"""
     ^ ;TYPE: (.+) $   # ";TYPE:External perimeter"
     """,
@@ -36,7 +36,7 @@ _TYPE_RE = re.compile(
 )
 
 # ";Z:0.2", the height of the current layer
-_Z_RE = re.compile(
+_LAYER_HEIGHT_COMMENT_RE = re.compile(
     r"""
     ^ ;Z: ( [-\d.]+ )   # ";Z:0.2"
     """,
@@ -74,7 +74,7 @@ def analyze(lines, max_layers=1):
     for raw in lines:
         line = raw.rstrip("\r\n")
         if line.startswith(";"):
-            m = _OBJECT_RE.match(line)
+            m = _PRINTING_OBJECT_COMMENT_RE.match(line)
             if m:
                 objects.add(m.group(1).strip())
             elif line.startswith(";LAYER_CHANGE"):
@@ -82,11 +82,11 @@ def analyze(lines, max_layers=1):
                 if layer_changes > max_layers:
                     break  # a normal multi-layer print: stop reading early
             else:
-                m = _TYPE_RE.match(line)
+                m = _EXTRUSION_TYPE_COMMENT_RE.match(line)
                 if m:
                     current_type = m.group(1).strip()
                 else:
-                    m = _Z_RE.match(line)
+                    m = _LAYER_HEIGHT_COMMENT_RE.match(line)
                     if m and layer_z is None:
                         layer_z = float(m.group(1))
             continue
