@@ -15,7 +15,14 @@ requires-python = ">=3.9,<4"
 dependencies = []
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-timeout",
+    "hypothesis",
+    "syrupy",
+]
 
 [project.urls]
 Homepage = "https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ"
@@ -31,3 +38,7 @@ include = ["octoprint_prusa_livez*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+timeout = 60  # a test waiting on a printer reply must not hang CI
+
+[tool.coverage.run]
+branch = true
