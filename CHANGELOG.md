@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- The regular expressions are now written with `re.VERBOSE`, one piece per line with a comment beside each. Fixed-string checks use plain string methods. Behaviour is unchanged, and new unit tests cover the parsing edge cases.
+- Fix: after writing Live Z, the firmware echoes the value it was sent, and the plugin could learn a wrong steps-per-mm from that echo (for example 399 after writing -0.5 mm). The next write then landed one step off and was reported as a verification error. Steps per mm are now learned only from reads.
+- Tests for the OctoPrint side of the plugin, snapshot and property-based tests, and a CI coverage job (about 98% line coverage).
+- The regular expressions are now written with `re.VERBOSE`, one piece per line with a comment and an example beside each, and they have descriptive names. Fixed-string checks use plain string methods. Behaviour is unchanged, and new unit tests cover the parsing edge cases.
 
 ## 1.0.0
 

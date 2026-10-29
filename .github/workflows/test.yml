@@ -2,7 +2,11 @@ name: test
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   pytest:
@@ -15,5 +19,34 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install "OctoPrint>=1.10" pytest -e .
+      - run: pip install "OctoPrint>=1.10" -e ".[test]"
       - run: pytest -q
+
+  # Measures line coverage and uploads it to GitHub Code Quality, where the
+  # branch ruleset checks it. Make this job a required status check, because
+  # the coverage rule doesn't wait for the upload by itself.
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      code-quality: write
+    steps:
+      # The PR head, not the merge commit, so line numbers match the diff.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install "OctoPrint>=1.10" -e ".[test]"
+      - run: pytest -q --cov=octoprint_prusa_livez --cov-report=xml --cov-report=term --cov-fail-under=90
+      # The 90% gate is the pytest step above. GitHub's coverage upload only
+      # works on Team or Enterprise Cloud plans, so a failed upload is a warning.
+      - name: Upload coverage report
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-code-coverage@v1
+        with:
+          file: coverage.xml
+          language: Python
+          label: code-coverage/pytest
+          fail-on-error: false
