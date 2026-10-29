@@ -28,20 +28,60 @@ RAW_MAX = 0  # Z_BABYSTEP_MAX
 RAW_EMPTY = -1  # 0xFFFF read as int16
 LABEL_MAX = 7
 
-LABEL_RE = re.compile(r"^[A-Za-z0-9 ]{1,7}$")
-# what the firmware would read as a parameter inside a label
-_LABEL_Z_RE = re.compile(r"Z")
-_LABEL_A_RE = re.compile(r"A\s*[+-]?\d")
+# The patterns below use re.VERBOSE: whitespace in the pattern is ignored and
+# "#" starts a comment, so a real space has to be written as [ ].
 
-_HEADER_UNINIT_RE = re.compile(r"^Sheet (\d) NOT INITIALIZED$")
-_DATA_RE = re.compile(
-    r"^(?:Sheet (?P<sheet>\d) )?Z(?P<z>-?\d+(?:\.\d+)?) R(?P<raw>-?\d+) "
-    r"L(?P<label>.*) B(?P<bed>\d+) P(?P<pinda>\d+) A(?P<active>[01])$"
+LABEL_RE = re.compile(
+    r"""
+    ^ [A-Za-z0-9 ]{1,7} $   # 1 to 7 letters, digits or spaces, nothing else
+    """,
+    re.VERBOSE,
 )
-_INVALID_SHEET_RE = re.compile(r"^Invalid sheet ID")
-_OUT_OF_RANGE_RE = re.compile(r"^Z VALUE OUT OF RANGE$")
 
-_FW_RE = re.compile(r"Prusa-Firmware (\d+)\.(\d+)\.(\d+)")
+# The firmware reads "A" followed by a number anywhere in the line as "make
+# active". Its strtol skips spaces, so "A 1" counts too.
+_LABEL_A_RE = re.compile(
+    r"""
+    A           # the parameter letter
+    \s*         # spaces, which strtol skips
+    [+-]?       # an optional sign
+    \d          # at least one digit
+    """,
+    re.VERBOSE,
+)
+
+# "Sheet 5 NOT INITIALIZED". The data follows on the next line.
+_HEADER_UNINIT_RE = re.compile(
+    r"""
+    ^ Sheet [ ] (\d) [ ] NOT [ ] INITIALIZED $
+    """,
+    re.VERBOSE,
+)
+
+# "Sheet 3 Z-0.8250 R-330 LTextur1 B60 P35 A1"
+_DATA_RE = re.compile(
+    r"""
+    ^
+    (?: Sheet [ ] (?P<sheet>\d) [ ] )?   # missing on the line after NOT INITIALIZED
+    Z (?P<z> -?\d+ (?:\.\d+)? ) [ ]      # Live Z in mm: -0.8250
+    R (?P<raw> -?\d+ ) [ ]               # the stored value in microsteps: -330
+    L (?P<label> .* ) [ ]                # the name, which can contain spaces
+    B (?P<bed> \d+ ) [ ]                 # bed temperature (unused by the firmware)
+    P (?P<pinda> \d+ ) [ ]               # PINDA temperature (unused by the firmware)
+    A (?P<active> [01] )                 # 1 = the active sheet
+    $
+    """,
+    re.VERBOSE,
+)
+
+# "FIRMWARE_NAME:Prusa-Firmware 3.14.1+8237_74a577bc0 based on Marlin"
+_FW_RE = re.compile(
+    r"""
+    Prusa-Firmware [ ]
+    (\d+) \. (\d+) \. (\d+)   # major.minor.patch, anything after is ignored
+    """,
+    re.VERBOSE,
+)
 MIN_FIRMWARE = (3, 13, 0)
 
 
@@ -97,9 +137,9 @@ class ReplyParser:
             )
 
         self._pending_uninit = None
-        if _INVALID_SHEET_RE.match(text):
+        if text.startswith("Invalid sheet ID"):
             return ("error", text)
-        if _OUT_OF_RANGE_RE.match(text):
+        if text == "Z VALUE OUT OF RANGE":
             return ("error", "Z value out of range")
         return None
 
@@ -176,7 +216,7 @@ def validate_label(label):
     label = str(label).rstrip()
     if not LABEL_RE.match(label):
         raise M850Error("Name must be 1 to 7 letters, digits or spaces")
-    if _LABEL_Z_RE.search(label):
+    if "Z" in label:
         raise M850Error(
             "The firmware would read an upper-case Z in a name as a new Live Z. Use a lower-case z."
         )

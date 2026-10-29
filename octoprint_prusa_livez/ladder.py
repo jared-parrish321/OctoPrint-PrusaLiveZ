@@ -13,9 +13,34 @@ import re
 from .zshift import parse_words
 
 OBJECT_HINT = "FirstLayerCalibration"
-_OBJECT_RE = re.compile(r"^; printing object (.+?)(?: id:\d+ copy \d+)?\s*$")
-_TYPE_RE = re.compile(r"^;TYPE:(.+)$")
-_Z_RE = re.compile(r"^;Z:([-\d.]+)")
+# Slicer comments. These use re.VERBOSE, so a real space is written as [ ].
+
+# "; printing object FirstLayerCalibration-FirstLayer.stl id:0 copy 0"
+_OBJECT_RE = re.compile(
+    r"""
+    ^ ; [ ] printing [ ] object [ ]
+    (.+?)                               # the object name (as short as possible)
+    (?: [ ] id: \d+ [ ] copy [ ] \d+ )?   # added by newer PrusaSlicer versions
+    \s* $
+    """,
+    re.VERBOSE,
+)
+
+# ";TYPE:External perimeter"
+_TYPE_RE = re.compile(
+    r"""
+    ^ ;TYPE: (.+) $
+    """,
+    re.VERBOSE,
+)
+
+# ";Z:0.2", the height of the current layer
+_Z_RE = re.compile(
+    r"""
+    ^ ;Z: ( [-\d.]+ )
+    """,
+    re.VERBOSE,
+)
 
 MIN_NOTCH_DEPTH = 2.0  # mm a notch must reach into the pad
 MAX_NOTCH_WIDTH = 4.0  # mm between the two sides of one notch

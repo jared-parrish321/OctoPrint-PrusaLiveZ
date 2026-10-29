@@ -12,7 +12,22 @@ list of commands to send instead.
 
 import re
 
-_WORD_RE = re.compile(r"([A-Za-z])\s*([-+]?(?:\d+\.?\d*|\.\d+))")
+# One G-code word, like X10, Y-2.5 or E.8. findall() returns (letter, number)
+# pairs and skips anything that isn't a word.
+_WORD_RE = re.compile(
+    r"""
+    ([A-Za-z])          # the parameter letter
+    \s*                 # optional spaces before the number
+    (                   # the number:
+        [-+]?           #   an optional sign
+        (?:
+            \d+ \.? \d*  #   digits, with an optional decimal part: 5, 5., 5.25
+          | \. \d+       #   or a decimal part alone: .25
+        )
+    )
+    """,
+    re.VERBOSE,
+)
 EPS = 1e-6
 
 
