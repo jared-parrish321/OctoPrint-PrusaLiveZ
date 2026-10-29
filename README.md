@@ -31,13 +31,20 @@ In OctoPrint: Settings > Plugin Manager > Get More > "...from URL", then paste:
 https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
 ```
 
-Or from a shell, using the `pip` of the Python environment OctoPrint runs in:
+Or from a shell. On **OctoPi**, the most common setup, OctoPrint lives in `~/oprint`:
 
 ```sh
-<octoprint-venv>/bin/pip install https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
+~/oprint/bin/pip install https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
+sudo service octoprint restart
 ```
 
-Then restart OctoPrint (System menu > Restart OctoPrint, or however your install runs it). Where that environment lives depends on how OctoPrint was installed. On OctoPi, for example, it's `~/oprint`, and the restart command is `sudo service octoprint restart`.
+On **any other install** (manual install, Docker, Windows, macOS), use the `pip` of the Python environment OctoPrint runs in, then restart OctoPrint from its System menu > Restart OctoPrint, or however your install runs it:
+
+```sh
+/path/to/octoprint-venv/bin/pip install https://github.com/jared-parrish321/OctoPrint-PrusaLiveZ/archive/refs/heads/main.zip
+```
+
+On Windows the path is `\path\to\octoprint-venv\Scripts\pip.exe`. Not sure where the environment is? Open OctoPrint's About dialog (link at the bottom of the page) > System Information, and look for `env.python.virtualenv`.
 
 OctoPrint's Software Update offers new versions from this repo's GitHub releases.
 
