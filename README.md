@@ -21,7 +21,7 @@ It talks to the printer only with `M850`, the sheet command added in Prusa firmw
 ## Requirements
 
 * Prusa firmware **3.13.0 or later** (`M115` in the Terminal tab shows it). On older firmware the panel shows a notice and stays read-only.
-* OctoPrint 1.10 or later, Python 3.9 or later.
+* OctoPrint 1.10 or later, Python 3.10 or later.
 
 ## Install
 
@@ -101,11 +101,19 @@ Band heights are kept between 0.10 and 0.35 mm.
 
 ```sh
 python -m venv .venv && . .venv/bin/activate
-pip install "OctoPrint>=1.10" pytest -e .
-pytest
+pip install "OctoPrint>=1.10" -e ".[test]"
+pytest                                   # all tests
+pytest --cov=octoprint_prusa_livez --cov-report=term-missing   # with coverage
 ```
 
-The tests replay a real PrusaSlicer first-layer calibration file (`tests/data/first_layer_ladder.gcode`) through the Z rewriter and check every band's height, the filament total and the band edges. They also check that `M850 Z` values survive the firmware's float truncation.
+| Tests | What they cover |
+| --- | --- |
+| `test_plugin.py` | The OctoPrint side, run against stand-ins in `tests/fakes.py`: a fake MK3S firmware that answers `M850` like 3.14.1 does (parameter search over the whole line, truncation, the empty-sheet marker), plus fake printer and settings objects. Covers every API command, the safety rules, permissions, print events, nudges, the ladder, history and undo. |
+| `test_m850.py`, `test_ladder.py`, `test_zshift.py`, `test_zshift_cases.py` | Reply parsing, ladder detection and the Z rewriter, including a replay of a real PrusaSlicer first-layer calibration file (`tests/data/first_layer_ladder.gcode`). |
+| `test_snapshot.py` | The whole rewritten ladder file, compared with `tests/__snapshots__/`. After an intended change, review the diff and run `pytest --snapshot-update`. |
+| `test_properties.py` | [Hypothesis](https://hypothesis.readthedocs.io/) property tests over thousands of generated inputs, for example that every Live Z step survives the firmware's float truncation. |
+
+CI runs the tests on Python 3.10, 3.11 and 3.13. Its `coverage` job fails below 90% and uploads the report to GitHub Code Quality.
 
 ## Sources
 
