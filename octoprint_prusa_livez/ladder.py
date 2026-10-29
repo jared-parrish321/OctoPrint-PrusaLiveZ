@@ -18,10 +18,11 @@ OBJECT_HINT = "FirstLayerCalibration"
 # "; printing object FirstLayerCalibration-FirstLayer.stl id:0 copy 0"
 _OBJECT_RE = re.compile(
     r"""
-    ^ ; [ ] printing [ ] object [ ]
-    (.+?)                               # the object name (as short as possible)
-    (?: [ ] id: \d+ [ ] copy [ ] \d+ )?   # added by newer PrusaSlicer versions
-    \s* $
+    ^ ; [ ] printing [ ] object [ ]       # "; printing object "
+    (.+?)                               # the object name, as short as possible:
+                                        #   "FirstLayerCalibration-FirstLayer.stl"
+    (?: [ ] id: \d+ [ ] copy [ ] \d+ )?   # added by newer PrusaSlicer versions: " id:0 copy 0"
+    \s* $                               # trailing spaces or the line ending
     """,
     re.VERBOSE,
 )
@@ -29,7 +30,7 @@ _OBJECT_RE = re.compile(
 # ";TYPE:External perimeter"
 _TYPE_RE = re.compile(
     r"""
-    ^ ;TYPE: (.+) $
+    ^ ;TYPE: (.+) $   # ";TYPE:External perimeter"
     """,
     re.VERBOSE,
 )
@@ -37,7 +38,7 @@ _TYPE_RE = re.compile(
 # ";Z:0.2", the height of the current layer
 _Z_RE = re.compile(
     r"""
-    ^ ;Z: ( [-\d.]+ )
+    ^ ;Z: ( [-\d.]+ )   # ";Z:0.2"
     """,
     re.VERBOSE,
 )

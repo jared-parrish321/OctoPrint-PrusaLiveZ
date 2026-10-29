@@ -16,13 +16,13 @@ import re
 # pairs and skips anything that isn't a word.
 _WORD_RE = re.compile(
     r"""
-    ([A-Za-z])          # the parameter letter
-    \s*                 # optional spaces before the number
+    ([A-Za-z])          # the parameter letter: "X" in "X10"
+    \s*                 # optional spaces before the number: " " in "X 10"
     (                   # the number:
-        [-+]?           #   an optional sign
+        [-+]?           #   an optional sign: "-" in "Y-2.5"
         (?:
-            \d+ \.? \d*  #   digits, with an optional decimal part: 5, 5., 5.25
-          | \. \d+       #   or a decimal part alone: .25
+            \d+ \.? \d*  #   digits, with an optional decimal part: "5", "5.", "5.25"
+          | \. \d+       #   or a decimal part alone: ".8" in "E.8"
         )
     )
     """,

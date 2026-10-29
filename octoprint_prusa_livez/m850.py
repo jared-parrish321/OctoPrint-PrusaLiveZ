@@ -33,7 +33,7 @@ LABEL_MAX = 7
 
 LABEL_RE = re.compile(
     r"""
-    ^ [A-Za-z0-9 ]{1,7} $   # 1 to 7 letters, digits or spaces, nothing else
+    ^ [A-Za-z0-9 ]{1,7} $   # 1 to 7 letters, digits or spaces: "Textur1", "PEI 2"
     """,
     re.VERBOSE,
 )
@@ -42,10 +42,10 @@ LABEL_RE = re.compile(
 # active". Its strtol skips spaces, so "A 1" counts too.
 _LABEL_A_RE = re.compile(
     r"""
-    A           # the parameter letter
-    \s*         # spaces, which strtol skips
-    [+-]?       # an optional sign
-    \d          # at least one digit
+    A           # the parameter letter:   "A"   in "Smooth A1"
+    \s*         # spaces, which strtol skips: " "   in "A 1"
+    [+-]?       # an optional sign:       "-"   in "A-1"
+    \d          # at least one digit:     "1"   in "A1"
     """,
     re.VERBOSE,
 )
@@ -53,7 +53,7 @@ _LABEL_A_RE = re.compile(
 # "Sheet 5 NOT INITIALIZED". The data follows on the next line.
 _HEADER_UNINIT_RE = re.compile(
     r"""
-    ^ Sheet [ ] (\d) [ ] NOT [ ] INITIALIZED $
+    ^ Sheet [ ] (\d) [ ] NOT [ ] INITIALIZED $   # "Sheet 5 NOT INITIALIZED"
     """,
     re.VERBOSE,
 )
@@ -62,13 +62,13 @@ _HEADER_UNINIT_RE = re.compile(
 _DATA_RE = re.compile(
     r"""
     ^
-    (?: Sheet [ ] (?P<sheet>\d) [ ] )?   # missing on the line after NOT INITIALIZED
-    Z (?P<z> -?\d+ (?:\.\d+)? ) [ ]      # Live Z in mm: -0.8250
-    R (?P<raw> -?\d+ ) [ ]               # the stored value in microsteps: -330
-    L (?P<label> .* ) [ ]                # the name, which can contain spaces
-    B (?P<bed> \d+ ) [ ]                 # bed temperature (unused by the firmware)
-    P (?P<pinda> \d+ ) [ ]               # PINDA temperature (unused by the firmware)
-    A (?P<active> [01] )                 # 1 = the active sheet
+    (?: Sheet [ ] (?P<sheet>\d) [ ] )?   # "Sheet 3 ", missing on the line after NOT INITIALIZED
+    Z (?P<z> -?\d+ (?:\.\d+)? ) [ ]      # Live Z in mm: "Z-0.8250 "
+    R (?P<raw> -?\d+ ) [ ]               # the stored value in microsteps: "R-330 "
+    L (?P<label> .* ) [ ]                # the name, which can contain spaces: "LTextur1 ", "LPEI 2 "
+    B (?P<bed> \d+ ) [ ]                 # bed temperature (unused by the firmware): "B60 "
+    P (?P<pinda> \d+ ) [ ]               # PINDA temperature (unused by the firmware): "P35 "
+    A (?P<active> [01] )                 # 1 = the active sheet: "A1"
     $
     """,
     re.VERBOSE,
@@ -77,8 +77,8 @@ _DATA_RE = re.compile(
 # "FIRMWARE_NAME:Prusa-Firmware 3.14.1+8237_74a577bc0 based on Marlin"
 _FW_RE = re.compile(
     r"""
-    Prusa-Firmware [ ]
-    (\d+) \. (\d+) \. (\d+)   # major.minor.patch, anything after is ignored
+    Prusa-Firmware [ ]          # "Prusa-Firmware "
+    (\d+) \. (\d+) \. (\d+)   # major.minor.patch: "3.14.1" (the "+8237_74a577bc0" after it is ignored)
     """,
     re.VERBOSE,
 )
