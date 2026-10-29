@@ -355,7 +355,8 @@ class PrusaLiveZPlugin(
     def _request(self, command, sheet):
         """Send one M850 and wait for the sheet report. One at a time."""
         with self._io_lock:
-            waiter = {"sheet": sheet, "event": threading.Event(), "result": None, "error": None}
+            waiter = {"sheet": sheet, "event": threading.Event(), "result": None, "error": None,
+                      "read": command == m850.cmd_read(sheet)}
             self._waiter = waiter
             try:
                 self._printer.commands(command, tags={"trigger:plugin_prusa_livez"})
@@ -456,8 +457,11 @@ class PrusaLiveZPlugin(
         kind, value = event
         waiter = self._waiter
         if kind == "sheet":
-            self._store_sheet(value)
-            if waiter and waiter["sheet"] == value["index"]:
+            answers_waiter = bool(waiter and waiter["sheet"] == value["index"])
+            # After a write the firmware echoes the Z it was sent, not raw / steps,
+            # so only a read can tell us the steps per mm.
+            self._store_sheet(value, learn=not answers_waiter or waiter["read"])
+            if answers_waiter:
                 waiter["result"] = self._sheets[value["index"]]
                 waiter["event"].set()
             elif not self._refreshing:
@@ -479,8 +483,8 @@ class PrusaLiveZPlugin(
             return None
         return out
 
-    def _store_sheet(self, value):
-        steps = m850.learn_steps_per_mm(value["raw"], value["z_reported"])
+    def _store_sheet(self, value, learn=True):
+        steps = m850.learn_steps_per_mm(value["raw"], value["z_reported"]) if learn else None
         if steps and steps != self._steps:
             self._logger.info("Learned Z steps/mm from the printer: %s", steps)
             self._steps = steps
@@ -680,7 +684,7 @@ class PrusaLiveZPlugin(
 
 
 __plugin_name__ = "Prusa Live Z"
-__plugin_pythoncompat__ = ">=3.9,<4"
+__plugin_pythoncompat__ = ">=3.10,<4"
 
 
 def __plugin_load__():
