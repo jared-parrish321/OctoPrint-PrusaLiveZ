@@ -8,18 +8,33 @@ left edge and run a few mm inward. The middle of each pair is a band edge.
 Pure Python, no OctoPrint imports.
 """
 
-import re
-
+from .textscan import DIGITS, is_digits, take_while
 from .zshift import parse_words
 
 OBJECT_HINT = "FirstLayerCalibration"
-_OBJECT_RE = re.compile(r"^; printing object (.+?)(?: id:\d+ copy \d+)?\s*$")
-_TYPE_RE = re.compile(r"^;TYPE:(.+)$")
-_Z_RE = re.compile(r"^;Z:([-\d.]+)")
+OBJECT_PREFIX = "; printing object "
+TYPE_PREFIX = ";TYPE:"
+Z_PREFIX = ";Z:"
 
 MIN_NOTCH_DEPTH = 2.0  # mm a notch must reach into the pad
 MAX_NOTCH_WIDTH = 4.0  # mm between the two sides of one notch
 EDGE_TOL = 0.05
+
+
+def _object_name(line):
+    """``; printing object Pad id:0 copy 0`` -> ``Pad``, or None for other lines.
+
+    PrusaSlicer adds `` id:<n> copy <n>`` after the name. Older versions don't.
+    """
+    if not line.startswith(OBJECT_PREFIX) or len(line) == len(OBJECT_PREFIX):
+        return None
+    name = line[len(OBJECT_PREFIX) :].rstrip()
+    head, marker, tail = name.rpartition(" id:")
+    if marker and head:
+        object_id, copy_marker, copy = tail.partition(" copy ")
+        if copy_marker and is_digits(object_id) and is_digits(copy):
+            name = head
+    return name
 
 
 def default_offsets(bands, step=0.01):
@@ -48,21 +63,19 @@ def analyze(lines, max_layers=1):
     for raw in lines:
         line = raw.rstrip("\r\n")
         if line.startswith(";"):
-            m = _OBJECT_RE.match(line)
-            if m:
-                objects.add(m.group(1).strip())
+            name = _object_name(line)
+            if name is not None:
+                objects.add(name.strip())
             elif line.startswith(";LAYER_CHANGE"):
                 layer_changes += 1
                 if layer_changes > max_layers:
                     break  # a normal multi-layer print: stop reading early
-            else:
-                m = _TYPE_RE.match(line)
-                if m:
-                    current_type = m.group(1).strip()
-                else:
-                    m = _Z_RE.match(line)
-                    if m and layer_z is None:
-                        layer_z = float(m.group(1))
+            elif line.startswith(TYPE_PREFIX) and len(line) > len(TYPE_PREFIX):
+                current_type = line[len(TYPE_PREFIX) :].strip()
+            elif line.startswith(Z_PREFIX):
+                z_end = take_while(line, DIGITS + "-.", len(Z_PREFIX))
+                if z_end > len(Z_PREFIX) and layer_z is None:
+                    layer_z = float(line[len(Z_PREFIX) : z_end])
             continue
 
         code = line.split(";", 1)[0].strip()

@@ -19,7 +19,7 @@ Facts from Prusa-Firmware 3.13.0+ (Firmware/Marlin_main.cpp, case 850):
   parameter, because the label runs to the end of the line.
 """
 
-import re
+from .textscan import DIGITS, LETTERS, is_decimal, is_digits, is_int, is_single_digit, take_while
 
 MAX_SHEETS = 8
 DEFAULT_STEPS_PER_MM = 400
@@ -28,20 +28,11 @@ RAW_MAX = 0  # Z_BABYSTEP_MAX
 RAW_EMPTY = -1  # 0xFFFF read as int16
 LABEL_MAX = 7
 
-LABEL_RE = re.compile(r"^[A-Za-z0-9 ]{1,7}$")
-# what the firmware would read as a parameter inside a label
-_LABEL_Z_RE = re.compile(r"Z")
-_LABEL_A_RE = re.compile(r"A\s*[+-]?\d")
+LABEL_CHARS = LETTERS + DIGITS + " "
 
-_HEADER_UNINIT_RE = re.compile(r"^Sheet (\d) NOT INITIALIZED$")
-_DATA_RE = re.compile(
-    r"^(?:Sheet (?P<sheet>\d) )?Z(?P<z>-?\d+(?:\.\d+)?) R(?P<raw>-?\d+) "
-    r"L(?P<label>.*) B(?P<bed>\d+) P(?P<pinda>\d+) A(?P<active>[01])$"
-)
-_INVALID_SHEET_RE = re.compile(r"^Invalid sheet ID")
-_OUT_OF_RANGE_RE = re.compile(r"^Z VALUE OUT OF RANGE$")
-
-_FW_RE = re.compile(r"Prusa-Firmware (\d+)\.(\d+)\.(\d+)")
+UNINIT_PREFIX = "Sheet "
+UNINIT_SUFFIX = " NOT INITIALIZED"
+FIRMWARE_MARKER = "Prusa-Firmware "
 MIN_FIRMWARE = (3, 13, 0)
 
 
@@ -68,14 +59,14 @@ class ReplyParser:
         if not text:
             return None
 
-        m = _HEADER_UNINIT_RE.match(text)
-        if m:
-            self._pending_uninit = int(m.group(1))
+        header_sheet = parse_uninit_header(text)
+        if header_sheet is not None:
+            self._pending_uninit = header_sheet
             return None
 
-        m = _DATA_RE.match(text)
-        if m:
-            sheet = m.group("sheet")
+        data = parse_sheet_data(text)
+        if data:
+            sheet = data["sheet"]
             initialized = True
             if sheet is None:
                 if self._pending_uninit is None:
@@ -83,25 +74,80 @@ class ReplyParser:
                 sheet = self._pending_uninit
                 initialized = False
             self._pending_uninit = None
-            raw = int(m.group("raw"))
             return (
                 "sheet",
                 {
-                    "index": int(sheet),
-                    "initialized": initialized and raw != RAW_EMPTY,
-                    "raw": raw,
-                    "z_reported": float(m.group("z")),
-                    "name": _clean_label(m.group("label")),
-                    "active": m.group("active") == "1",
+                    "index": sheet,
+                    "initialized": initialized and data["raw"] != RAW_EMPTY,
+                    "raw": data["raw"],
+                    "z_reported": data["z"],
+                    "name": _clean_label(data["label"]),
+                    "active": data["active"],
                 },
             )
 
         self._pending_uninit = None
-        if _INVALID_SHEET_RE.match(text):
+        if text.startswith("Invalid sheet ID"):
             return ("error", text)
-        if _OUT_OF_RANGE_RE.match(text):
+        if text == "Z VALUE OUT OF RANGE":
             return ("error", "Z value out of range")
         return None
+
+
+def parse_uninit_header(text):
+    """``Sheet 5 NOT INITIALIZED`` -> 5, anything else -> None."""
+    if not (text.startswith(UNINIT_PREFIX) and text.endswith(UNINIT_SUFFIX)):
+        return None
+    number = text[len(UNINIT_PREFIX) : -len(UNINIT_SUFFIX)]
+    return int(number) if is_single_digit(number) else None
+
+
+def parse_sheet_data(text):
+    """Split a sheet report into its fields, or return None if it isn't one.
+
+    ``Sheet 3 Z-0.8250 R-330 LTextur1 B60 P35 A1``. The ``Sheet 3`` part is
+    missing on the data line after ``NOT INITIALIZED``. The name may contain
+    spaces, so the fixed fields are peeled off both ends: ``Z`` and ``R`` from
+    the front, ``B``, ``P`` and ``A`` from the back. What is left after ``L``
+    is the name.
+    """
+    sheet = None
+    if text.startswith("Sheet "):
+        number, _, text = text[len("Sheet ") :].partition(" ")
+        if not is_single_digit(number):
+            return None
+        sheet = int(number)
+
+    pieces = text.rsplit(" ", 3)  # front, then B.., P.., A..
+    if len(pieces) != 4:
+        return None
+    front, bed, pinda, active = pieces
+    if not (_is_field(bed, "B", is_digits) and _is_field(pinda, "P", is_digits)):
+        return None
+    if active not in ("A0", "A1"):
+        return None
+
+    pieces = front.split(" ", 2)  # Z.., R.., L<name>
+    if len(pieces) != 3:
+        return None
+    z, raw, label = pieces
+    if not (_is_field(z, "Z", is_decimal) and _is_field(raw, "R", is_int)):
+        return None
+    if not label.startswith("L"):
+        return None
+
+    return {
+        "sheet": sheet,
+        "z": float(z[1:]),
+        "raw": int(raw[1:]),
+        "label": label[1:],
+        "active": active == "A1",
+    }
+
+
+def _is_field(token, letter, check_value):
+    """True when ``token`` is ``letter`` followed by a value ``check_value`` accepts."""
+    return token.startswith(letter) and check_value(token[1:])
 
 
 def _clean_label(label):
@@ -174,18 +220,30 @@ def validate_label(label):
     if label is None:
         raise M850Error("Name is empty")
     label = str(label).rstrip()
-    if not LABEL_RE.match(label):
+    if not 1 <= len(label) <= LABEL_MAX or any(c not in LABEL_CHARS for c in label):
         raise M850Error("Name must be 1 to 7 letters, digits or spaces")
-    if _LABEL_Z_RE.search(label):
+    if "Z" in label:
         raise M850Error(
             "The firmware would read an upper-case Z in a name as a new Live Z. Use a lower-case z."
         )
-    if _LABEL_A_RE.search(label):
+    if _reads_as_activate(label):
         raise M850Error(
             "The firmware would read an upper-case A followed by a digit as 'make active'. "
             "Use a lower-case a."
         )
     return label
+
+
+def _reads_as_activate(label):
+    """True if the firmware would find ``A`` followed by a number in the label.
+
+    The firmware reads the number after a parameter letter with strtol, which
+    skips leading spaces, so ``A 1`` counts too.
+    """
+    for i, char in enumerate(label):
+        if char == "A" and is_single_digit(label[i + 1 :].lstrip(" ")[:1]):
+            return True
+    return False
 
 
 def cmd_read(sheet):
@@ -214,8 +272,20 @@ def parse_firmware(name):
     """Return (is_prusa, version_tuple or None, supports_m850)."""
     if not name:
         return False, None, False
-    m = _FW_RE.search(name)
-    if not m:
+    version = firmware_version(name)
+    if version is None:
         return "prusa" in name.lower(), None, False
-    version = tuple(int(x) for x in m.groups())
     return True, version, version >= MIN_FIRMWARE
+
+
+def firmware_version(name):
+    """``... Prusa-Firmware 3.14.1+8237 ...`` -> (3, 14, 1), or None."""
+    start = name.find(FIRMWARE_MARKER)
+    while start != -1:
+        number_start = start + len(FIRMWARE_MARKER)
+        number_end = take_while(name, DIGITS + ".", number_start)
+        parts = name[number_start:number_end].split(".")
+        if len(parts) >= 3 and all(is_digits(part) for part in parts[:3]):
+            return tuple(int(part) for part in parts[:3])
+        start = name.find(FIRMWARE_MARKER, start + 1)
+    return None

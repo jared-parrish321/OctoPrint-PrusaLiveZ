@@ -10,9 +10,8 @@ command (comments already stripped, as OctoPrint sends them) and returns the
 list of commands to send instead.
 """
 
-import re
+from .textscan import LETTERS, number_end
 
-_WORD_RE = re.compile(r"([A-Za-z])\s*([-+]?(?:\d+\.?\d*|\.\d+))")
 EPS = 1e-6
 
 
@@ -32,9 +31,32 @@ def parse_words(line):
     command = parts[0].upper()
     words = {}
     if len(parts) > 1:
-        for letter, value in _WORD_RE.findall(parts[1]):
-            words[letter.upper()] = float(value)
+        words = _scan_words(parts[1])
     return command, words
+
+
+def _scan_words(text):
+    """Read ``X10 Y-2.5 E.8`` into ``{"X": 10.0, "Y": -2.5, "E": 0.8}``.
+
+    Walks the text one character at a time, the way the firmware's own parser
+    does: a letter, optional spaces, then a number. A letter with no number
+    after it is skipped. A repeated letter keeps the last value.
+    """
+    words = {}
+    pos = 0
+    while pos < len(text):
+        letter = text[pos]
+        if letter in LETTERS:
+            value_start = pos + 1
+            while value_start < len(text) and text[value_start].isspace():
+                value_start += 1
+            value_end = number_end(text, value_start)
+            if value_end > value_start:
+                words[letter.upper()] = float(text[value_start:value_end])
+                pos = value_end
+                continue
+        pos += 1
+    return words
 
 
 def build_move(command, words, order="XYZEF"):
