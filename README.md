@@ -21,7 +21,7 @@ It talks to the printer only with `M850`, the sheet command added in Prusa firmw
 ## Requirements
 
 * Prusa firmware **3.13.0 or later** (`M115` in the Terminal tab shows it). On older firmware the panel shows a notice and stays read-only.
-* OctoPrint 1.10 or later, Python 3.10 or later.
+* OctoPrint 1.10 or later, Python 3.9 or later (OctoPi 1.0 and newer).
 
 ## Install
 
@@ -113,7 +113,7 @@ pytest --cov=octoprint_prusa_livez --cov-report=term-missing   # with coverage
 | `test_snapshot.py` | The whole rewritten ladder file, compared with `tests/__snapshots__/`. After an intended change, review the diff and run `pytest --snapshot-update`. |
 | `test_properties.py` | [Hypothesis](https://hypothesis.readthedocs.io/) property tests over thousands of generated inputs, for example that every Live Z step survives the firmware's float truncation. |
 
-CI runs the tests on Python 3.10, 3.11 and 3.13. Its `coverage` job fails below 90% and uploads the report to GitHub Code Quality.
+CI runs the tests on Python 3.9 (OctoPi 1.0), 3.11 (OctoPi 1.1) and 3.13. Its `coverage` job fails below 90% and uploads the report to GitHub Code Quality.
 
 ## Sources
 
