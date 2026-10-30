@@ -83,7 +83,7 @@ class PrusaLiveZPlugin(
 
     def get_template_configs(self):
         return [
-            {"type": "sidebar", "name": "Prusa Live Z", "icon": "fas fa-ruler-vertical",
+            {"type": "sidebar", "name": "Prusa Z-Offset", "icon": "fas fa-ruler-vertical",
              "template": "prusa_livez_sidebar.jinja2", "custom_bindings": True},
             {"type": "generic", "template": "prusa_livez_generic.jinja2", "custom_bindings": True},
         ]
