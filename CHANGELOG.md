@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Live Z has its own sidebar panel, "Prusa Live Z", shown only while OctoPrint streams a print. The "Prusa Z Offset" panel keeps the sheets, the Z offset editor, the calibration ladder setup and the history.
 - Clearer wording: the value stored on each sheet is now called the **Z offset** everywhere (the LCD calls it Live adjust Z), and **Live Z** means changing Z during a print. The sidebar panel is titled "Prusa Z Offset", and the edit permission is renamed "Edit sheets and Live Z". Its key is unchanged, so existing group settings keep working.
 - Removed the status line from the Control tab. The sidebar already shows the same information, and OctoPrint has no supported place for plugins in that tab, so the line had to be moved into OctoPrint's own layout and pushed the General controls down.
 - Fix: after writing a Z offset, the firmware echoes the value it was sent, and the plugin could learn a wrong steps-per-mm from that echo (for example 399 after writing -0.5 mm). The next write then landed one step off and was reported as a verification error. Steps per mm are now learned only from reads.

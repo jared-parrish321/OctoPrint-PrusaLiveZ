@@ -13,14 +13,14 @@ It talks to the printer only with `M850`, the sheet command added in Prusa firmw
 
 | Feature | What it does |
 | --- | --- |
-| Sheet table | A sidebar panel shows all 8 sheets with name, Z offset and which one is active. It refreshes on connect and after every print. |
+| Sheet table | The **Prusa Z Offset** sidebar panel shows all 8 sheets with name, Z offset and which one is active. It refreshes on connect and after every print. |
 | Edit the Z offset | Step buttons (±0.0025, ±0.01, ±0.05 mm) or type a value, then save. Values snap to the firmware's 0.0025 mm steps. |
 | Rename and switch | Rename a sheet (up to 7 characters) and make any calibrated sheet the active one. |
 | Verify | Every write is read back. If the printer didn't store exactly what was asked, you see an error. |
 | History and undo | The last 20 changes, with who made them and an Undo button. |
 | Export and import | Save all sheets to JSON, for example before a firmware flash or factory reset, and restore them later. |
 | Print-start notice | When a print starts, a notice shows which sheet and Z offset it will use. |
-| Live Z | While OctoPrint streams a print, ±0.01 and ±0.025 mm buttons shift the Z of every following move. When the print ends, you can add the total to the sheet's Z offset. |
+| Live Z | While OctoPrint streams a print, the **Prusa Live Z** sidebar panel appears, and its ±0.01 and ±0.025 mm buttons shift the Z of every following move. When the print ends, you can add the total to the sheet's Z offset. |
 | Calibration ladder | Select a notched first-layer test, give each band its own change (default -0.04 to +0.04 mm in 0.01 steps), print it, pick the best band, and the plugin writes the new Z offset. |
 
 ## Requirements
