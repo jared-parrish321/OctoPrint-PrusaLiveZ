@@ -14,7 +14,7 @@ It talks to the printer only with `M850`, the sheet command added in Prusa firmw
 | Verify | Every write is read back. If the printer didn't store exactly what was asked, you see an error. |
 | History and undo | The last 20 changes, with who made them and an Undo button. |
 | Export and import | Save all sheets to JSON, for example before a firmware flash or factory reset, and restore them later. |
-| Control tab status | A one-line "Sheet: Textur1 · Live Z -0.825 mm" above the jog controls, plus a notice when a print starts. |
+| Print-start notice | When a print starts, a notice shows which sheet and Live Z it will use. |
 | Mid-print nudge | While OctoPrint streams a print, ±0.01 and ±0.025 mm buttons shift the Z of every following move. When the print ends, you can save the total into the sheet. |
 | Calibration ladder | Select a notched first-layer test, give each band its own offset (default -0.04 to +0.04 mm in 0.01 steps), print it, pick the best band, and the plugin writes the new Live Z. |
 
