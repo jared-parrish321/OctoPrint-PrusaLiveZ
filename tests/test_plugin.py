@@ -32,7 +32,7 @@ def test_plugin_metadata(plugin):
     assert set(plugin.get_settings_defaults()) == {
         "big_jump", "nudge_cap", "ladder_step", "ladder_offsets", "notify_on_start"}
     assert plugin.is_template_autoescaped() is True
-    assert [t["type"] for t in plugin.get_template_configs()] == ["sidebar", "generic"]
+    assert [t["type"] for t in plugin.get_template_configs()] == ["sidebar", "sidebar", "generic"]
     assert plugin.get_assets() == {"js": ["js/prusa_livez.js"], "css": ["css/prusa_livez.css"]}
     (permission,) = plugin.get_additional_permissions()
     assert permission["key"] == "EDIT" and permission["dangerous"] is True

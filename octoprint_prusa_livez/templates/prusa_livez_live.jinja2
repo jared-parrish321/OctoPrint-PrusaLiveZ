@@ -1,0 +1,29 @@
+<div class="prusa-livez prusa-livez-live">
+    <!-- ko if: lastError() -->
+    <div class="alert alert-error">
+        <button type="button" class="close" data-bind="click: function() { lastError(null); }">&times;</button>
+        <span data-bind="text: lastError()"></span>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko ifnot: jobIsLadder() -->
+    <div class="prusa-livez-nudge">
+        <div class="prusa-livez-total">{{ _('Change for this print:') }} <strong data-bind="text: fmtSigned(nudge())"></strong> mm</div>
+        <div data-bind="visible: canEdit()">
+            <button class="btn" data-bind="click: function() { doNudge(-0.025); }">&minus;0.025</button>
+            <button class="btn" data-bind="click: function() { doNudge(-0.01); }">&minus;0.01</button>
+            <button class="btn" data-bind="click: function() { doNudge(0.01); }">+0.01</button>
+            <button class="btn" data-bind="click: function() { doNudge(0.025); }">+0.025</button>
+            <button class="btn btn-link" data-bind="click: nudgeReset, enable: nudge() !== 0">{{ _('Reset') }}</button>
+        </div>
+        <div class="muted">{{ _("Minus = closer to the bed. Takes effect after the moves already buffered (about 1 to 2 s). The sheet's Z offset changes only if you save it when the print ends.") }}</div>
+    </div>
+    <!-- /ko -->
+
+    <!-- ko if: jobIsLadder() -->
+    <div class="prusa-livez-nudge">
+        <h5>{{ _('Calibration ladder printing') }}</h5>
+        <div class="muted">{{ _('Each band prints at its own Z offset, so Live Z is off for this print. Pick the best band when the print ends.') }}</div>
+    </div>
+    <!-- /ko -->
+</div>

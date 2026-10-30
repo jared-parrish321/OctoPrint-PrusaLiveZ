@@ -85,6 +85,10 @@ class PrusaLiveZPlugin(
         return [
             {"type": "sidebar", "name": "Prusa Z Offset", "icon": "fas fa-ruler-vertical",
              "template": "prusa_livez_sidebar.jinja2", "custom_bindings": True},
+            # Shown only while OctoPrint streams a print, the only time Live Z works.
+            {"type": "sidebar", "name": "Prusa Live Z", "icon": "fas fa-arrows-alt-v", "suffix": "_live",
+             "template": "prusa_livez_live.jinja2", "custom_bindings": True,
+             "data_bind": "visible: shiftActive()", "styles_wrapper": ["display: none"]},
             {"type": "generic", "template": "prusa_livez_generic.jinja2", "custom_bindings": True},
         ]
 

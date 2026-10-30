@@ -403,6 +403,6 @@ $(function () {
     OCTOPRINT_VIEWMODELS.push({
         construct: PrusaLiveZViewModel,
         dependencies: ["loginStateViewModel", "accessViewModel", "printerStateViewModel"],
-        elements: ["#sidebar_plugin_prusa_livez", "#prusa_livez_control", "#prusa_livez_result"]
+        elements: ["#sidebar_plugin_prusa_livez", "#sidebar_plugin_prusa_livez_live_wrapper", "#prusa_livez_control", "#prusa_livez_result"]
     });
 });
