@@ -1,16 +1,3 @@
-<div id="prusa_livez_control" class="prusa-livez-control" data-bind="visible: activeSheet()">
-    <!-- ko with: activeSheet -->
-    <small>
-        <i class="fas fa-ruler-vertical"></i>
-        {{ _('Sheet:') }} <strong data-bind="text: name || ('#' + (index + 1))"></strong>
-        &middot; {{ _('Live Z') }} <strong data-bind="text: $parent.fmt(z)"></strong> mm
-        <!-- ko if: $parent.shiftActive() && $parent.nudge() !== 0 -->
-        &middot; {{ _('nudge') }} <strong data-bind="text: $parent.fmtSigned($parent.nudge())"></strong>
-        <!-- /ko -->
-    </small>
-    <!-- /ko -->
-</div>
-
 <div id="prusa_livez_result" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
