@@ -13,7 +13,6 @@
 .prusa-livez .prusa-livez-total { font-size: 16px; margin: 4px 0; }
 .prusa-livez .prusa-livez-bands input { width: 56px; margin: 0; }
 .prusa-livez .prusa-livez-history li { margin: 2px 0; font-size: 12px; }
-.prusa-livez-control { margin: 0 0 6px; }
 #prusa_livez_result .prusa-livez-pad { display: flex; flex-direction: column; gap: 3px; max-width: 320px; margin: 0 auto; }
 #prusa_livez_result .prusa-livez-band { display: flex; justify-content: space-between; align-items: center; text-align: left; }
 #prusa_livez_result .prusa-livez-band-no { font-weight: bold; width: 2em; }
