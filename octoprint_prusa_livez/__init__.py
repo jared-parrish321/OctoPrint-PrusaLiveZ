@@ -1,4 +1,5 @@
-"""Prusa Live Z: read and write Live Adjust Z per sheet on Prusa MK3/MK2.5 firmware."""
+"""Prusa Live Z: read and write the Z offset of each sheet on Prusa MK3/MK2.5 firmware,
+and change Z live during a print."""
 
 import json
 import os
@@ -82,7 +83,7 @@ class PrusaLiveZPlugin(
 
     def get_template_configs(self):
         return [
-            {"type": "sidebar", "name": "Live Z", "icon": "fas fa-ruler-vertical",
+            {"type": "sidebar", "name": "Prusa Live Z", "icon": "fas fa-ruler-vertical",
              "template": "prusa_livez_sidebar.jinja2", "custom_bindings": True},
             {"type": "generic", "template": "prusa_livez_generic.jinja2", "custom_bindings": True},
         ]
@@ -94,8 +95,8 @@ class PrusaLiveZPlugin(
         return [
             {
                 "key": "EDIT",
-                "name": "Edit Live Z",
-                "description": "Change Live Z, sheet names and the active sheet, and nudge Z during a print",
+                "name": "Edit sheets and Live Z",
+                "description": "Change Z offsets, sheet names and the active sheet, and use Live Z during a print",
                 "roles": ["edit"],
                 "dangerous": True,
                 "default_groups": [ADMIN_GROUP],
@@ -210,7 +211,7 @@ class PrusaLiveZPlugin(
         if not isinstance(sheets, list):
             raise PluginError("Import needs a list of sheets")
         if not data.get("confirm"):
-            raise PluginError("Importing overwrites names and Live Z. Confirm to continue.", "confirm")
+            raise PluginError("Importing overwrites names and Z offsets. Confirm to continue.", "confirm")
         plan = []
         for item in sheets:
             if not isinstance(item, dict):
@@ -220,7 +221,7 @@ class PrusaLiveZPlugin(
                 continue
             raw = int(item["raw"]) if "raw" in item else m850.mm_to_raw(float(item["z"]), self._steps)
             if raw == m850.RAW_EMPTY or not m850.RAW_MIN <= raw <= m850.RAW_MAX:
-                raise PluginError("Sheet {} has an invalid Live Z".format(index))
+                raise PluginError("Sheet {} has an invalid Z offset".format(index))
             name = m850.validate_label(item["name"]) if item.get("name") else None
             plan.append((index, raw, name))
         for index, raw, name in plan:
@@ -232,27 +233,27 @@ class PrusaLiveZPlugin(
 
     def _api_nudge(self, data):
         if not (self._shift_active and self._job):
-            raise PluginError("Nudges work only while a print streamed by OctoPrint is running")
+            raise PluginError("Live Z works only while OctoPrint is streaming a print")
         if self._job.get("ladder"):
-            raise PluginError("Nudges are off during a calibration ladder print")
+            raise PluginError("Live Z is off during a calibration ladder print")
         if self._printer.is_paused() or self._printer.is_pausing():
-            raise PluginError("Nudges are locked while the print is paused")
+            raise PluginError("Live Z is locked while the print is paused")
         try:
             delta = float(data.get("delta"))
         except (TypeError, ValueError):
-            raise PluginError("Nudge must be a number")
+            raise PluginError("The Live Z change must be a number")
         if abs(delta) > NUDGE_STEP_MAX + 1e-9:
-            raise PluginError("One nudge can be at most {} mm".format(NUDGE_STEP_MAX))
+            raise PluginError("One Live Z change can be at most {} mm".format(NUDGE_STEP_MAX))
         cap = float(self._settings.get(["nudge_cap"]))
         new = _round(self._shifter.nudge + delta)
         if abs(new) > cap + 1e-9:
-            raise PluginError("The total nudge is capped at ±{:.2f} mm".format(cap))
+            raise PluginError("The total Live Z change is capped at ±{:.2f} mm".format(cap))
         file_z = self._shifter.file_z
         if file_z is not None and file_z + new < MIN_PHYSICAL_Z:
             raise PluginError("That would put the nozzle {:.3f} mm above the bed".format(file_z + new))
         self._shifter.set_nudge(new)
         self._job["nudge"] = new
-        self._logger.info("Mid-print Z nudge now %+.3f mm (by %s)", new, self._user())
+        self._logger.info("Live Z change now %+.3f mm (by %s)", new, self._user())
         self._push()
 
     def _api_nudge_reset(self, data):
@@ -292,7 +293,7 @@ class PrusaLiveZPlugin(
             note = "ladder band {}".format(band + 1)
         else:
             offset = pending["offset"]
-            note = "mid-print nudge"
+            note = "Live Z"
         sheet = pending["sheet"]
         current = self._sheets[sheet]
         if current is None:
@@ -301,7 +302,7 @@ class PrusaLiveZPlugin(
         if abs(offset) < 1e-9:
             self._pending = None
             self._push()
-            return {"message": "Band {} is the current Live Z, nothing to change".format(band + 1)}
+            return {"message": "Band {} is the current Z offset, nothing to change".format(band + 1)}
         self._set_z(sheet, new_mm, confirm=True, note=note)
         self._pending = None
 
@@ -329,20 +330,20 @@ class PrusaLiveZPlugin(
             or self._printer.is_cancelling()
         )
         if busy or self._shift_active:
-            raise PluginError("Live Z can only be changed while the printer is idle")
+            raise PluginError("Sheets can only be changed while the printer is idle")
 
     def _validate_offsets(self, offsets):
         info = self._ladder_info or {}
         bands = info.get("bands", 0)
         if not isinstance(offsets, list) or len(offsets) != bands:
-            raise PluginError("Need exactly {} offsets".format(bands))
+            raise PluginError("Need exactly {} band changes".format(bands))
         layer_z = info.get("layer_z", 0.2)
         out = []
         for i, value in enumerate(offsets):
             try:
                 value = _round(value)
             except (TypeError, ValueError):
-                raise PluginError("Band {} offset must be a number".format(i + 1))
+                raise PluginError("Band {} change must be a number".format(i + 1))
             z = layer_z + value
             if not LADDER_BAND_Z[0] - 1e-9 <= z <= LADDER_BAND_Z[1] + 1e-9:
                 raise PluginError("Band {} would print at {:.3f} mm; keep it between {} and {} mm".format(
@@ -406,9 +407,10 @@ class PrusaLiveZPlugin(
             jump = abs(m850.raw_to_mm(raw - old_raw, self._steps))
             big = float(self._settings.get(["big_jump"]))
             if jump > big + 1e-9 and not confirm:
-                raise PluginError("That changes Live Z by {:.3f} mm. Confirm to continue.".format(jump), "confirm")
+                raise PluginError(
+                    "That changes the Z offset by {:.3f} mm. Confirm to continue.".format(jump), "confirm")
         elif not confirm:
-            raise PluginError("Sheet {} has no Live Z yet. Run First Layer Calibration on the printer, "
+            raise PluginError("Sheet {} has no Z offset yet. Run First Layer Calibration on the printer, "
                               "or confirm to set a starting value.".format(sheet + 1), "confirm")
         if raw == old_raw and current["initialized"]:
             return
@@ -432,7 +434,7 @@ class PrusaLiveZPlugin(
     def _activate(self, sheet, note=None):
         current = self._sheets[sheet] or self._request(m850.cmd_read(sheet), sheet)
         if not current["initialized"]:
-            raise PluginError("Sheet {} has no Live Z yet, so the firmware won't make it active".format(sheet + 1))
+            raise PluginError("Sheet {} has no Z offset yet, so the firmware won't make it active".format(sheet + 1))
         old = next((s["index"] for s in self._sheets if s and s["active"]), None)
         if old == sheet:
             return
