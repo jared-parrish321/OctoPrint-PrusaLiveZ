@@ -225,7 +225,7 @@ def test_uninitialized_marker_is_skipped(api, firmware):
 
 def test_uncalibrated_sheet_needs_confirmation(api, firmware):
     status, body = api("set_z", sheet=1, z=-0.8)
-    assert status == 409 and "has no Live Z yet" in body["error"]
+    assert status == 409 and "has no Z offset yet" in body["error"]
     status, body = api("set_z", sheet=1, z=-0.8, confirm=True)
     assert status == 200 and body["state"]["sheets"][1]["initialized"] is True
 
@@ -399,8 +399,8 @@ def test_import_restores_sheets(api, firmware):
 @pytest.mark.parametrize("sheets, message", [
     ("nope", "needs a list"),
     (["nope"], "must be an object"),
-    ([{"index": 0, "raw": -1}], "invalid Live Z"),
-    ([{"index": 0, "raw": 5}], "invalid Live Z"),
+    ([{"index": 0, "raw": -1}], "invalid Z offset"),
+    ([{"index": 0, "raw": 5}], "invalid Z offset"),
     ([{"index": 0, "raw": -300, "name": "Zebra"}], "upper-case Z"),
 ])
 def test_import_rejects_bad_backups(api, firmware, sheets, message):
@@ -522,8 +522,8 @@ def test_ladder_settings(api):
 
 
 @pytest.mark.parametrize("offsets, message", [
-    ([0.0] * 8, "exactly 9 offsets"),
-    (["x"] + [0.0] * 8, "Band 1 offset must be a number"),
+    ([0.0] * 8, "exactly 9 band changes"),
+    (["x"] + [0.0] * 8, "Band 1 change must be a number"),
     ([0.0] * 8 + [0.5], "Band 9 would print at 0.700 mm"),
 ])
 def test_ladder_settings_reject_bad_offsets(api, offsets, message):
@@ -588,7 +588,7 @@ def test_nudge_reset(api):
 
 def test_nudge_rules(api):
     status, body = api("nudge", delta=0.01)
-    assert status == 400 and "only while a print" in body["error"]
+    assert status == 400 and "only while OctoPrint is streaming a print" in body["error"]
 
     select_ladder(api.plugin)
     start(api.plugin)

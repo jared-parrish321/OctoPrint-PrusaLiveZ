@@ -60,9 +60,9 @@ $(function () {
         });
         self.firmwareNote = ko.pureComputed(function () {
             var fw = st("firmware", {});
-            if (!self.printerState.isOperational()) return gettext("Connect the printer to read Live Z.");
+            if (!self.printerState.isOperational()) return gettext("Connect the printer to read the sheets.");
             if (fw.supported === false) {
-                return _.sprintf(gettext("Live Z needs Prusa firmware 3.13.0 or later. This printer reports: %(name)s"),
+                return _.sprintf(gettext("This plugin needs Prusa firmware 3.13.0 or later. This printer reports: %(name)s"),
                     { name: fw.name || gettext("unknown firmware") });
             }
             if (fw.supported !== true) return gettext("Waiting for the printer's firmware report...");
@@ -89,7 +89,7 @@ $(function () {
             var who = h.user ? " (" + h.user + ")" : "";
             var note = h.note ? " [" + h.note + "]" : "";
             if (h.field === "z") {
-                return _.sprintf(gettext("Sheet %(s)s Live Z %(a)s → %(b)s"), {
+                return _.sprintf(gettext("Sheet %(s)s Z offset %(a)s → %(b)s"), {
                     s: h.sheet + 1, a: self.fmt(h.old / self.steps()), b: self.fmt(h.new / self.steps())
                 }) + note + who;
             }
@@ -241,7 +241,7 @@ $(function () {
         self.resultTitle = ko.pureComputed(function () {
             var p = self.pending();
             if (!p) return "";
-            return p.kind === "ladder" ? gettext("Pick the best band") : gettext("Keep the Z nudge?");
+            return p.kind === "ladder" ? gettext("Pick the best band") : gettext("Keep the Live Z change?");
         });
         self.resultReady = ko.pureComputed(function () {
             var p = self.pending();
@@ -254,7 +254,7 @@ $(function () {
             var sheet = st("sheets", [])[p.sheet];
             var offset = p.kind === "ladder" ? (self.pickedBand() === null ? null : p.offsets[self.pickedBand()]) : p.offset;
             if (!sheet || offset === null) return "";
-            return _.sprintf(gettext("Sheet %(name)s: Live Z %(a)s → %(b)s mm"), {
+            return _.sprintf(gettext("Sheet %(name)s: Z offset %(a)s → %(b)s mm"), {
                 name: sheet.name || "#" + (sheet.index + 1), a: self.fmt(sheet.z), b: self.fmt(sheet.z + offset)
             });
         });
@@ -304,7 +304,7 @@ $(function () {
                 }
                 var sheets = (parsed && parsed.sheets) || [];
                 showConfirmationDialog({
-                    message: _.escape(_.sprintf(gettext("Write names and Live Z for %(n)s sheets from %(file)s?"), { n: sheets.length, file: file.name })),
+                    message: _.escape(_.sprintf(gettext("Write names and Z offsets for %(n)s sheets from %(file)s?"), { n: sheets.length, file: file.name })),
                     proceed: gettext("Import"),
                     onproceed: function () { self.command("import", { sheets: sheets, confirm: true }); }
                 });
@@ -322,7 +322,7 @@ $(function () {
                 .always(function () { self.busy(false); })
                 .done(function (response) {
                     if (response && response.state) self.applyState(response.state);
-                    if (response && response.message) new PNotify({ title: "Live Z", text: response.message, type: "info" });
+                    if (response && response.message) new PNotify({ title: "Prusa Live Z", text: response.message, type: "info" });
                     if (done) done(response);
                 })
                 .fail(function (xhr) {
@@ -380,7 +380,7 @@ $(function () {
                 if (a) {
                     new PNotify({
                         title: gettext("Printing on sheet ") + (a.name || "#" + (a.index + 1)),
-                        text: _.sprintf(gettext("Live Z %(z)s mm%(ladder)s"), {
+                        text: _.sprintf(gettext("Z offset %(z)s mm%(ladder)s"), {
                             z: self.fmt(a.z), ladder: job.ladder ? gettext(", calibration ladder on") : ""
                         }),
                         type: "info",

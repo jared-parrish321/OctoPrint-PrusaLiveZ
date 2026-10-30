@@ -195,17 +195,17 @@ def validate_sheet(sheet):
 
 
 def target_raw(z_mm, previous_raw=None, steps_per_mm=DEFAULT_STEPS_PER_MM):
-    """Validate a Live Z value in mm and return the raw value to store."""
+    """Validate a Z offset in mm and return the raw value to store."""
     try:
         z_mm = float(z_mm)
     except (TypeError, ValueError):
-        raise M850Error("Live Z must be a number")
+        raise M850Error("Z offset must be a number")
     if z_mm != z_mm:  # NaN
-        raise M850Error("Live Z must be a number")
+        raise M850Error("Z offset must be a number")
     raw = mm_to_raw(z_mm, steps_per_mm)
     if raw < RAW_MIN or raw > RAW_MAX:
         raise M850Error(
-            "Live Z must be between {:.4f} and 0 mm".format(raw_to_mm(RAW_MIN, steps_per_mm))
+            "Z offset must be between {:.4f} and 0 mm".format(raw_to_mm(RAW_MIN, steps_per_mm))
         )
     return snap_raw(raw, previous_raw)
 
@@ -218,7 +218,7 @@ def validate_label(label):
         raise M850Error("Name must be 1 to 7 letters, digits or spaces")
     if "Z" in label:
         raise M850Error(
-            "The firmware would read an upper-case Z in a name as a new Live Z. Use a lower-case z."
+            "The firmware would read an upper-case Z in a name as a new Z offset. Use a lower-case z."
         )
     if _NAME_ACTIVATES_SHEET_RE.search(label):
         raise M850Error(
@@ -235,7 +235,7 @@ def cmd_read(sheet):
 def cmd_set_z(sheet, raw, steps_per_mm=DEFAULT_STEPS_PER_MM):
     sheet = validate_sheet(sheet)
     if raw == RAW_EMPTY or raw < RAW_MIN or raw > RAW_MAX:
-        raise M850Error("Raw Live Z {} is not allowed".format(raw))
+        raise M850Error("Raw Z offset {} is not allowed".format(raw))
     # firmware: zraw = (int16)(z * steps), truncated toward zero. Send the
     # middle of the step below raw so float rounding can't land one step off.
     value = (raw - 0.5) / float(steps_per_mm) if raw < 0 else 0.0
