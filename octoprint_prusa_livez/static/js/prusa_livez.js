@@ -392,8 +392,6 @@ $(function () {
         };
 
         self.onAllBound = function () {
-            // Moved only after binding, so the control tab's own view model never binds it.
-            $("#prusa_livez_control").prependTo("#control-jog-general");
             self.fetch();
         };
         self.onUserLoggedIn = self.fetch;
@@ -403,6 +401,6 @@ $(function () {
     OCTOPRINT_VIEWMODELS.push({
         construct: PrusaLiveZViewModel,
         dependencies: ["loginStateViewModel", "accessViewModel", "printerStateViewModel"],
-        elements: ["#sidebar_plugin_prusa_livez", "#sidebar_plugin_prusa_livez_live_wrapper", "#prusa_livez_control", "#prusa_livez_result"]
+        elements: ["#sidebar_plugin_prusa_livez", "#sidebar_plugin_prusa_livez_live_wrapper", "#prusa_livez_result"]
     });
 });
