@@ -1,0 +1,24 @@
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  version-matches-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that pyproject.toml has the release's version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)
+          echo "pyproject.toml: $version, release tag: $TAG"
+          if [ "$version" != "$TAG" ]; then
+            echo "::error::pyproject.toml says $version but the release tag is $TAG. OctoPrint would keep offering this update."
+            exit 1
+          fi

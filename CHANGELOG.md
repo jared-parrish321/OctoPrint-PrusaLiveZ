@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
 - Live Z has its own sidebar panel, "Prusa Live Z", shown only while OctoPrint streams a print. The "Prusa Z Offset" panel keeps the sheets, the Z offset editor, the calibration ladder setup and the history.
 - Clearer wording: the value stored on each sheet is now called the **Z offset** everywhere (the LCD calls it Live adjust Z), and **Live Z** means changing Z during a print. The sidebar panel is titled "Prusa Z Offset", and the edit permission is renamed "Edit sheets and Live Z". Its key is unchanged, so existing group settings keep working.
