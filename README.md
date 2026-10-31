@@ -118,7 +118,15 @@ pytest --cov=octoprint_prusa_livez --cov-report=term-missing   # with coverage
 | `test_snapshot.py` | The whole rewritten ladder file, compared with `tests/__snapshots__/`. After an intended change, review the diff and run `pytest --snapshot-update`. |
 | `test_properties.py` | [Hypothesis](https://hypothesis.readthedocs.io/) property tests over thousands of generated inputs, for example that every Z offset step survives the firmware's float truncation. |
 
-CI runs the tests on Python 3.9 (OctoPi 1.0), 3.11 (OctoPi 1.1) and 3.13. Its `coverage` job fails below 90% and uploads the report to GitHub Code Quality.
+CI runs the tests on Python 3.9 (OctoPi 1.0), 3.11 (OctoPi 1.1) and 3.13. Its `coverage` job fails below 90%.
+
+### Releasing
+
+OctoPrint's update check compares the newest GitHub release tag with the version the installed plugin reports, which comes from `pyproject.toml`. If the two don't match, OctoPrint keeps offering the same update.
+
+1. Set `version` in `pyproject.toml` to the new version, and rename `## Unreleased` in `CHANGELOG.md` to that version. Merge this to `main`.
+2. Create a GitHub release whose tag is exactly that version (for example `1.0.1`, no `v`), from `main`.
+3. The `release` workflow fails if the tag and `pyproject.toml` disagree.
 
 ## Sources
 

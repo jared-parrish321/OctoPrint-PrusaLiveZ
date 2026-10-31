@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "OctoPrint-PrusaLiveZ"
-version = "1.0.0"
+version = "1.0.1"
 description = "Read and set the Z offset of each sheet, switch sheets, change Z live during a print and run a calibration ladder on Prusa MK3/MK2.5 printers"
 readme = "README.md"
 license = "MIT"
